@@ -6,6 +6,7 @@ just call `Embedder().embed(path)` instead of re-loading the model each time.
 The knobs live in config.py, not here.
 """
 
+import numpy as np
 import torch
 import torchvision.models as models
 from torchvision import transforms
@@ -39,9 +40,11 @@ class Embedder:
         ])
 
     def embed(self, path):
-        """One image path -> one 512-number vector."""
+        """One image path -> one 512-number vector of unit length."""
         image = Image.open(path).convert("RGB")          # open, force 3 channels
         tensor = self.transform(image).unsqueeze(0)      # preprocess + batch dim
         with torch.no_grad():                            # no gradient bookkeeping
             vector = self.model(tensor)
-        return vector.squeeze(0).numpy()                 # drop batch dim, plain array
+        vector = vector.squeeze(0).numpy()               # drop batch dim, plain array
+        norm = np.linalg.norm(vector)                    # the vector's length
+        return vector / norm                             # scale to length 1
