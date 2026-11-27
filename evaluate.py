@@ -1,21 +1,22 @@
 """Unit 3: the evaluation harness.
 
-Runs the detector over the full test set and counts the confusion matrix:
-defects caught, defects missed, good parts flagged, good parts passed.
+Runs the detector over the validation or test set and counts the confusion
+matrix. Usage:
 
-Run:  .venv/bin/python evaluate.py
+    .venv/bin/python evaluate.py validation
+    .venv/bin/python evaluate.py test          (default)
+
+validation = pick the model/threshold; test = grade once, at the end.
 """
 
+import sys
 import json
 from pathlib import Path
 
 import nearest
 from embedder import Embedder
 import config
-
-
-GOOD_FOLDERS = [config.TEST_GOOD, config.HELDOUT_GOOD]
-DEFECTIVE_FOLDERS = [config.TEST_DEFECTIVE, config.HELDOUT_DEFECTIVE]
+import log_experiment
 
 
 def classify(distance, threshold):
@@ -27,7 +28,7 @@ def evaluate(embedder, vectors, threshold, folders, actual):
     """Embed and score every image in the folders; return a list of result dicts."""
     results = []
     for folder in folders:
-        for path in sorted(Path(folder).glob("*.png")):
+        for path in config.list_images(folder):
             distance = nearest.nearest_distance(embedder.embed(path), vectors)
             results.append({
                 "filename": path.name,
@@ -48,12 +49,20 @@ def confusion_counts(good_results, bad_results):
 
 
 def main():
+    set_name = sys.argv[1] if len(sys.argv) > 1 else "test"
+    if set_name == "validation":
+        good_folders = [config.VALIDATION_GOOD]
+        defective_folders = [config.VALIDATION_DEFECTIVE]
+    else:
+        good_folders = [config.TEST_GOOD]
+        defective_folders = [config.TEST_DEFECTIVE]
+
     embedder = Embedder()
     names, vectors = nearest.load_store()
     threshold = json.load(open("data/threshold.json"))["threshold"]
 
-    good = evaluate(embedder, vectors, threshold, GOOD_FOLDERS, "good")
-    bad = evaluate(embedder, vectors, threshold, DEFECTIVE_FOLDERS, "defective")
+    good = evaluate(embedder, vectors, threshold, good_folders, "good")
+    bad = evaluate(embedder, vectors, threshold, defective_folders, "defective")
 
     caught, missed, false_alarms, passed = confusion_counts(good, bad)
 
@@ -62,6 +71,7 @@ def main():
     catch_rate = caught / total_defects if total_defects else 0.0
     false_alarm_rate = false_alarms / total_good if total_good else 0.0
 
+    print(f"set: {set_name}")
     print("confusion matrix")
     print(f"  defects:  caught {caught}   missed {missed}   (of {total_defects})")
     print(f"  good:     passed {passed}   flagged {false_alarms}   (of {total_good})")
@@ -75,6 +85,7 @@ def main():
         print(f"  {r['actual']:>9}  {r['filename']:>24}  dist {r['distance']:.3f}")
 
     report = {
+        "set": set_name,
         "threshold": threshold,
         "caught": caught,
         "missed": missed,
@@ -87,6 +98,7 @@ def main():
     with open("data/evaluation.json", "w") as f:
         json.dump(report, f, indent=2)
     print(f"\nsaved data/evaluation.json ({len(good) + len(bad)} results)")
+    log_experiment.log_run()
 
 
 if __name__ == "__main__":

@@ -35,9 +35,9 @@ def make_thumbnail(source_path, name):
 
 
 def find_image(filename):
-    """Return the full path of an image file by name, searching the test folders."""
+    """Return the full path of an image file by name, searching the eval folders."""
     for folder in [config.TEST_GOOD, config.TEST_DEFECTIVE,
-                   config.HELDOUT_GOOD, config.HELDOUT_DEFECTIVE]:
+                   config.VALIDATION_GOOD, config.VALIDATION_DEFECTIVE]:
         candidate = Path(folder) / filename
         if candidate.exists():
             return candidate
@@ -76,7 +76,10 @@ def main():
     lines.append("")
     lines.append("## Parts inspected")
     lines.append("")
-    lines.append("- 83 parts: 20 good, 63 defective")
+    total_good = evaluation["passed"] + evaluation["false_alarms"]
+    total_defects = evaluation["caught"] + evaluation["missed"]
+    lines.append(f"- {total_good + total_defects} parts: "
+                 f"{total_good} good, {total_defects} defective")
     lines.append("")
     lines.append("## Results")
     lines.append("")
@@ -111,8 +114,10 @@ def main():
     lines.append("")
     lines.append("## Data note")
     lines.append("")
-    lines.append("MVTec AD images are CC BY-NC-SA 4.0 (non-commercial). "
-                 "Benchmark data only — not a client result, and never presented as one.")
+    lines.append("VisA (Visual Anomaly) images — Zou et al., \"SPot-the-Difference\", ECCV 2022. "
+                 "Licensed CC BY 4.0 (attribution required): "
+                 "github.com/amazon-science/spot-diff. "
+                 "Benchmark data, not a client result.")
     lines.append("")
     lines.append("## Reproduce")
     lines.append("")

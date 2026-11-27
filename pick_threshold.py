@@ -19,7 +19,7 @@ def main():
                  for i in range(len(vectors))]
     distances = np.array(distances)
 
-    print("leave-one-out distances of the 209 good training images:")
+    print(f"leave-one-out distances of the {len(vectors)} good training images:")
     print(f"  min {distances.min():.3f}   "
           f"mean {distances.mean():.3f}   "
           f"max {distances.max():.3f}   "
@@ -30,7 +30,7 @@ def main():
     record = {
         "threshold": threshold,
         "date": datetime.date.today().isoformat(),
-        "data": "leave-one-out nearest distances of 209 train/good images (MVTec AD bottle)",
+        "data": f"leave-one-out nearest distances of {len(vectors)} train/good images ({config.DATASET})",
         "rule": "max of good-good nearest distances",
         "mean": float(distances.mean()),
         "std": float(distances.std()),

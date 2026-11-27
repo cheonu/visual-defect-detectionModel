@@ -55,12 +55,19 @@ def mean_level(levels):
     return sum(levels) / len(levels)
 
 
-def save_drift_map(ranges, folder):
-    """Write rig_drift.png: bright areas are the pixels that moved between shots."""
+def save_drift_map(ranges):
+    """Write rig_drift.png: bright areas are the pixels that moved between shots.
+
+    Saved to reports/ (NOT the input folder), so the next run doesn't read the
+    drift map back as if it were another photo of the part.
+    """
+    output = Path("reports") / "rig_drift.png"
+    output.parent.mkdir(parents=True, exist_ok=True)
     brightened = [min(255, level * 4) for level in ranges]
     map_image = Image.new("L", (SIZE, SIZE))
     map_image.putdata(brightened)
-    map_image.resize((320, 320), Image.Resampling.NEAREST).save(folder / "rig_drift.png")
+    map_image.resize((320, 320), Image.Resampling.NEAREST).save(output)
+    return output
 
 
 def report(photos, folder):
@@ -83,8 +90,8 @@ def report(photos, folder):
     else:
         print("verdict           rig drifted, fix height and lamp, reshoot")
 
-    save_drift_map(ranges, folder)
-    print(f"drift map         {folder / 'rig_drift.png'}")
+    drift_map = save_drift_map(ranges)
+    print(f"drift map         {drift_map}")
 
 
 def selftest():

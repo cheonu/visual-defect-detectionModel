@@ -8,14 +8,13 @@ The knobs live in config.py, not here.
 
 import numpy as np
 import torch
-import torchvision.models as models
 from torchvision import transforms
 from PIL import Image
 
 import config
 
-MEAN = [0.485, 0.456, 0.406]   # ImageNet channel averages (fixed for resnet18)
-STD = [0.229, 0.224, 0.225]    # ImageNet channel spread (fixed for resnet18)
+MEAN = [0.485, 0.456, 0.406]   # ImageNet channel averages (the model's expected scale)
+STD = [0.229, 0.224, 0.225]    # ImageNet channel spread (the model's expected scale)
 
 
 class Embedder:
@@ -27,8 +26,9 @@ class Embedder:
         self.transform = self._build_transform()
 
     def _load_model(self):
-        model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        model.fc = torch.nn.Identity()   # cut off the classifier, keep the summary
+        # DINOv2: a self-supervised vision model. Its output is already a single
+        # fixed-length summary of the image (no classifier head to cut off).
+        model = torch.hub.load("facebookresearch/dinov2", config.MODEL_NAME)
         model.eval()
         return model
 
@@ -40,7 +40,7 @@ class Embedder:
         ])
 
     def embed(self, path):
-        """One image path -> one 512-number vector of unit length."""
+        """One image path -> one 1024-number vector of unit length."""
         image = Image.open(path).convert("RGB")          # open, force 3 channels
         tensor = self.transform(image).unsqueeze(0)      # preprocess + batch dim
         with torch.no_grad():                            # no gradient bookkeeping
