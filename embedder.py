@@ -48,3 +48,13 @@ class Embedder:
         vector = vector.squeeze(0).numpy()               # drop batch dim, plain array
         norm = np.linalg.norm(vector)                    # the vector's length
         return vector / norm                             # scale to length 1
+
+    def embed_patches(self, path):
+        """One image path -> its patch tokens (num_patches x dim), unit length."""
+        image = Image.open(path).convert("RGB")
+        tensor = self.transform(image).unsqueeze(0)
+        with torch.no_grad():
+            features = self.model.forward_features(tensor)
+        patches = features["x_norm_patchtokens"][0].numpy()        # (256, 1024)
+        norms = np.linalg.norm(patches, axis=1, keepdims=True)     # L2 length per patch
+        return patches / norms                                      # -> unit length

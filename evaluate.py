@@ -86,6 +86,7 @@ def main():
 
     report = {
         "set": set_name,
+        "method": "cls",
         "threshold": threshold,
         "caught": caught,
         "missed": missed,

@@ -9,20 +9,18 @@ from pathlib import Path
 from PIL import Image
 
 import config
+from detector import Detector
+from patch_scoring import render_heatmap
 
 BAR = 0.95                 # the catch-rate bar from the pilot offer
 THUMB_DIR = Path("reports/thumbnails")
+HEATMAP_DIR = Path("reports/heatmaps")
 THUMB_SIZE = (160, 160)
 
 
 def load(path):
     with open(path) as f:
         return json.load(f)
-
-
-def defect_type(filename):
-    """'broken_small_007.png' -> 'broken_small'."""
-    return filename.rsplit("_", 1)[0]
 
 
 def make_thumbnail(source_path, name):
@@ -65,14 +63,23 @@ def main():
     missed = [r for r in results
               if r["actual"] == "defective" and r["predicted"] == "good"]
 
+    detector = Detector()                   # loads model + banks once
+    HEATMAP_DIR.mkdir(parents=True, exist_ok=True)
+
     for r in missed:                        # the honest part: show the misses
         source = find_image(r["filename"])
         r["thumb"] = make_thumbnail(source, r["filename"]) if source else None
+        if source:
+            scores = detector.inspect(str(source))["patch_scores"]
+            render_heatmap(scores, str(source), HEATMAP_DIR / r["filename"])
+            r["heatmap"] = True
+        else:
+            r["heatmap"] = False
 
     lines = []
     lines.append("# Shadow-Mode Pilot Report")
     lines.append("")
-    lines.append("**Bench demo — MVTec AD \"bottle\" category (benchmark data, not client data).**")
+    lines.append(f"**Bench demo — {config.DATASET} (benchmark data, not a client result).**")
     lines.append("")
     lines.append("## Parts inspected")
     lines.append("")
@@ -96,14 +103,18 @@ def main():
     lines.append("## Failure cases (defects missed)")
     lines.append("")
     for r in missed:
-        lines.append(f"- **{r['filename']}** ({defect_type(r['filename'])}) — distance {r['distance']}")
+        lines.append(f"- **{r['filename']}** — distance {r['distance']}")
         if r.get("thumb"):
             lines.append("")
             lines.append(f"![{r['filename']}](thumbnails/{r['filename']})")
             lines.append("")
+        if r.get("heatmap"):
+            lines.append(f"![{r['filename']} heatmap](heatmaps/{r['filename']})")
+            lines.append("")
     lines.append("## Defects flagged")
     lines.append("")
-    lines.append(f"{len(caught)} of 63 defects flagged correctly:")
+    lines.append(f"{len(caught)} of {evaluation['caught'] + evaluation['missed']} "
+                 f"defects flagged correctly:")
     lines.append("")
     lines.append(", ".join(r["filename"] for r in caught))
     lines.append("")

@@ -3,7 +3,7 @@
 Appends one line per run to reports/experiments.csv.
 
 Run standalone:  .venv/bin/python log_experiment.py
-Also called automatically at the end of evaluate.py.
+Also called automatically at the end of evaluate.py / evaluate_patch.py.
 """
 
 import csv
@@ -14,20 +14,20 @@ from pathlib import Path
 import config
 
 LOG = Path("reports/experiments.csv")
-FIELDS = ["model", "dataset", "set", "catch_rate", "false_alarm_rate",
-          "threshold", "date"]
+FIELDS = ["model", "dataset", "set", "method", "catch_rate",
+          "false_alarm_rate", "threshold", "date"]
 
 
 def log_run():
     evaluation = json.load(open("data/evaluation.json"))
-    threshold = json.load(open("data/threshold.json"))
     row = {
         "model": config.MODEL_NAME,
         "dataset": config.DATASET,
         "set": evaluation.get("set", "test"),
+        "method": evaluation.get("method", "cls"),
         "catch_rate": round(evaluation["catch_rate"], 4),
         "false_alarm_rate": round(evaluation["false_alarm_rate"], 4),
-        "threshold": round(threshold["threshold"], 4),
+        "threshold": round(evaluation.get("threshold", 0.0), 4),
         "date": datetime.date.today().isoformat(),
     }
     if not LOG.exists():
