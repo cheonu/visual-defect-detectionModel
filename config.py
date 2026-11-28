@@ -7,7 +7,7 @@ from pathlib import Path
 
 IMAGE_SIZE = 224                    # every image is resized to this square before embedding
 MODEL_NAME = "dinov2_vitl14"        # which DINOv2 variant: vits14 / vitb14 / vitl14
-DATASET = "visa_pcb1"               # which dataset directory under data/
+DATASET = "bottle_label"            # which dataset directory under data/
 
 DATA_DIR = f"data/{DATASET}"
 

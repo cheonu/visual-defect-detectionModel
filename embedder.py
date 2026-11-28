@@ -40,8 +40,11 @@ class Embedder:
         ])
 
     def embed(self, path):
-        """One image path -> one 1024-number vector of unit length."""
-        image = Image.open(path).convert("RGB")          # open, force 3 channels
+        """One image path -> one fixed-length vector of unit length."""
+        return self.embed_image(Image.open(path).convert("RGB"))
+
+    def embed_image(self, image):
+        """One PIL image -> one fixed-length vector of unit length."""
         tensor = self.transform(image).unsqueeze(0)      # preprocess + batch dim
         with torch.no_grad():                            # no gradient bookkeeping
             vector = self.model(tensor)
@@ -51,7 +54,10 @@ class Embedder:
 
     def embed_patches(self, path):
         """One image path -> its patch tokens (num_patches x dim), unit length."""
-        image = Image.open(path).convert("RGB")
+        return self.embed_patches_image(Image.open(path).convert("RGB"))
+
+    def embed_patches_image(self, image):
+        """One PIL image -> its patch tokens (num_patches x dim), unit length."""
         tensor = self.transform(image).unsqueeze(0)
         with torch.no_grad():
             features = self.model.forward_features(tensor)
